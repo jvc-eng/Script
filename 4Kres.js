@@ -7,10 +7,10 @@ if (headers.hasOwnProperty("x-device-id") || headers.hasOwnProperty("X-Device-ID
     const notify = $.getdata("m3u8");
     if (!notify || notify != url) {
       $.setdata(url, "m3u8");
-      const senPlayerUrl = "yybx://play?" + encodeURIComponent(url),
+      const senPlayerUrl = "SenPlayer://x-callback-url/play?url=" + encodeURIComponent(url),
         mediaUrl = "https://raw.githubusercontent.com/Yu9191/-/main/dingdangmao.jpg";
 
-      $.msg("获取成功", "请安装YYBX播放器", "已安装请忽略", {
+      $.msg("获取成功", "请安装SenPlayer播放器", "已安装请忽略", {
         "open-url": senPlayerUrl,
         "media-url": mediaUrl,
       });
