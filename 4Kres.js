@@ -7,7 +7,7 @@ if (headers.hasOwnProperty("x-device-id") || headers.hasOwnProperty("X-Device-ID
     const notify = $.getdata("m3u8");
     if (!notify || notify != url) {
       $.setdata(url, "m3u8");
-      const senPlayerUrl = "yybx://play?url=" + encodeURIComponent(url),
+      const senPlayerUrl = "yybx://play?" + encodeURIComponent(url),
         mediaUrl = "https://raw.githubusercontent.com/Yu9191/-/main/dingdangmao.jpg";
 
       $.msg("获取成功", "请安装YYBX播放器", "已安装请忽略", {
