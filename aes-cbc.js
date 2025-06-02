@@ -1,60 +1,157 @@
 (async () => {
-  const BASE64_STRING = "yhgLegqE3rorpuZk1OJh7ivVlGwTWb8lvw0MiYl0zGyldQ5C6Tk7FCAX6A9lJW3ec7t4g0wWv2UCmaQQOJxjKLoj1CL/B8N7/uyDhzA7a9xwXJRPjSSS+u8Tadq4ZgPrjar+7w/WssX8BEsG9mlonlSk+cDnE7G0ouPTgR7+zG71pQKkGvg28wa9nDy1w9c9R6kGjvuTuWBHDDKLzdCVYJtC/9GbhGaB0udjiq91K3fhE79VeBhhvBckXy+j40IxeGQYRu6KgNRS/i30ZXWjA6RkxPAX9z0Wt4B1gkYbnJf7yJ5C0vmGgQcweI3UddmLEbIeYxEVKwnhcvpXUUBC9jBh5W7BP5h++EmlyNKUptl8IUnR4azlc0qJZ3HXVuOo/dAFilXpFBU+Gj2UGdTUNGCcQtNlOaYcxcZ5PP2jIJk=";//输入base64位加密内容
-  const key = "TmPrPhkOf8by0cvx";//输入密钥
-  const iv = "TmPrPhkOf8by0cvx";//输入密钥变量
-
   const ENV_URL = "https://raw.githubusercontent.com/Alex0510/Eric/master/surge/Script/evn.js";
   const UTILS_URLS = [
     "https://cdn.jsdelivr.net/gh/xzxxn777/Surge@main/Utils/Utils.js",
-    "https://raw.githubusercontent.com/xzxxn777/Surge/main/Utils/Utils.js",
-    "https://gitlab.com/xzxxn777/Surge/-/raw/main/Utils/Utils.js"
+    "https://raw.githubusercontent.com/xzxxn777/Surge/main/Utils/Utils.js"
   ];
 
   let $;
 
   try {
     const Env = await loadRemoteModule("Env_Cache", ENV_URL, "Env");
-    $ = new Env("🧪Base64解密");
+    $ = new Env("🔐 AES/DES 解密工具");
+
+    // 🚀 弹窗输入数据
+    const BASE64_STRING = await $.input("请输入 Base64 加密内容：");
+    const KEY_INPUT = await $.input("请输入明文密钥（留空使用 Base64 密钥）：");
+    const IV_INPUT = await $.input("请输入明文 IV（留空使用 Base64 IV）：");
+
+    // 🔐 Base64 编码密钥（可自行替换）
+    const BASE64_KEY_INPUT = "bWkwamE3bHNiMzBjNDdlNg==";
+    const BASE64_IV_INPUT = "QS0xNi1CeXRlLVN0cmluZw==";
+
+    console.log("🧩 准备解密：", BASE64_STRING);
 
     const utils = await loadUtilsWithFallback();
-    if (!utils) {
-      console.log("❌ Utils 加载失败");
-      return $.done({});
-    }
-
+    if (!utils) throw new Error("Utils 加载失败");
     const CryptoJS = utils.createCryptoJS?.();
-    if (!CryptoJS) {
-      console.log("❌ CryptoJS 初始化失败");
-      return $.done({});
+    if (!CryptoJS) throw new Error("CryptoJS 初始化失败");
+
+    const keys = [];
+
+    if (KEY_INPUT) {
+      keys.push({
+        name: "明文密钥",
+        key: CryptoJS.enc.Utf8.parse(KEY_INPUT),
+        iv: CryptoJS.enc.Utf8.parse(IV_INPUT),
+      });
     }
 
-    const decrypted = AES_Decrypt(BASE64_STRING, key, iv, CryptoJS);
-    if (decrypted) {
-      console.log("✅ 解密结果：\n" + decrypted);
-    } else {
-      console.log("⚠️ 解密失败或结果为空");
+    keys.push({
+      name: "Base64 密钥",
+      key: CryptoJS.enc.Base64.parse(BASE64_KEY_INPUT),
+      iv: CryptoJS.enc.Base64.parse(BASE64_IV_INPUT),
+    });
+
+    let success = false;
+
+    for (const item of keys) {
+      console.log(`🔑 尝试使用 ${item.name} 解密:`);
+
+      let decrypted = AES_Decrypt(BASE64_STRING, item.key, item.iv, CryptoJS);
+      if (decrypted) {
+        console.log("✅ AES-CBC 解密结果：\n" + decrypted);
+        success = true;
+        break;
+      }
+
+      decrypted = AES_Decrypt_ECB(BASE64_STRING, item.key, CryptoJS);
+      if (decrypted) {
+        console.log("✅ AES-ECB 解密结果：\n" + decrypted);
+        success = true;
+        break;
+      }
+
+      decrypted = DES_Decrypt_CBC(BASE64_STRING, item.key, item.iv, CryptoJS);
+      if (decrypted) {
+        console.log("✅ DES-CBC 解密结果：\n" + decrypted);
+        success = true;
+        break;
+      }
+
+      decrypted = DES_Decrypt_ECB(BASE64_STRING, item.key, CryptoJS);
+      if (decrypted) {
+        console.log("✅ DES-ECB 解密结果：\n" + decrypted);
+        success = true;
+        break;
+      }
+    }
+
+    if (!success) {
+      console.log("❌ 所有方式解密失败，请检查密钥/数据是否正确");
     }
 
     return $.done({});
   } catch (e) {
-    console.log("❎ 脚本异常:", e && e.stack ? e.stack : e);
+    console.log("❎ 脚本异常:", e?.stack || e);
     if ($ && typeof $.done === "function") return $.done({});
     if (typeof $done === "function") return $done({});
   }
 
   function AES_Decrypt(data, key, iv, CryptoJS) {
-    const decrypted = CryptoJS.AES.decrypt(
-      {
-        ciphertext: CryptoJS.enc.Base64.parse(data)
-      },
-      CryptoJS.enc.Utf8.parse(key),
-      {
-        iv: CryptoJS.enc.Utf8.parse(iv),
-        mode: CryptoJS.mode.CBC,
-        padding: CryptoJS.pad.Pkcs7
-      }
-    );
-    return decrypted.toString(CryptoJS.enc.Utf8);
+    try {
+      const decrypted = CryptoJS.AES.decrypt(
+        { ciphertext: CryptoJS.enc.Base64.parse(data) },
+        key,
+        {
+          iv: iv,
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7
+        }
+      );
+      return decrypted.toString(CryptoJS.enc.Utf8);
+    } catch {
+      return null;
+    }
+  }
+
+  function AES_Decrypt_ECB(data, key, CryptoJS) {
+    try {
+      const decrypted = CryptoJS.AES.decrypt(
+        { ciphertext: CryptoJS.enc.Base64.parse(data) },
+        key,
+        {
+          mode: CryptoJS.mode.ECB,
+          padding: CryptoJS.pad.Pkcs7
+        }
+      );
+      return decrypted.toString(CryptoJS.enc.Utf8);
+    } catch {
+      return null;
+    }
+  }
+
+  function DES_Decrypt_CBC(data, key, iv, CryptoJS) {
+    try {
+      const decrypted = CryptoJS.DES.decrypt(
+        { ciphertext: CryptoJS.enc.Base64.parse(data) },
+        key,
+        {
+          iv: iv,
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7
+        }
+      );
+      return decrypted.toString(CryptoJS.enc.Utf8);
+    } catch {
+      return null;
+    }
+  }
+
+  function DES_Decrypt_ECB(data, key, CryptoJS) {
+    try {
+      const decrypted = CryptoJS.DES.decrypt(
+        { ciphertext: CryptoJS.enc.Base64.parse(data) },
+        key,
+        {
+          mode: CryptoJS.mode.ECB,
+          padding: CryptoJS.pad.Pkcs7
+        }
+      );
+      return decrypted.toString(CryptoJS.enc.Utf8);
+    } catch {
+      return null;
+    }
   }
 
   async function loadUtilsWithFallback() {
